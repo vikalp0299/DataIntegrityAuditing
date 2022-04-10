@@ -12,9 +12,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-
 #define PORT 4444
-#define MAX 1024
 
 using namespace std;
 
@@ -217,7 +215,7 @@ int main()
 
     fd_set readfs;
     //initialize client socket
-    string msg = "HENLO \r\n";
+    string msg = "ECHO Daemon v1.0 \r\n";
     char *message;
     message=&msg[0];
 
@@ -292,41 +290,9 @@ int main()
 	    else
                 cout<<"Welcome Message sent successfully"<<endl;
             //Add function to generate random UID and insert the UID and IP here:
-            string ss,sg;
-            char sgc[MAX],ssc[MAX];
-            ss="NEW USER?";
-            strcpy(ssc,ss.c_str());
-            if((send(new_socket,ssc,sizeof(ssc),0))==sizeof(ssc)){
-                perror("Send failed");
-            }
-            if((read(new_socket,sgc,sizeof(sgc))==0)){
-                    perror("something is wrong");
-            }
-            if(strcmp(sgc,"yes")==0){
-                int random = 1+(rand()%100);
-                explicit_bzero(ssc,sizeof(ssc));
-                ss='\0';
-                ss= to_string(random);
-                strcpy(ssc,ss.c_str());
 
-                if((send(new_socket,ssc,sizeof(ssc),0))!=sizeof(ssc)){
-                    perror("Send Failed@!");
-                }
-            }
-            else{
-                explicit_bzero(sgc,sizeof(sgc));
-                explicit_bzero(ssc,sizeof(ssc));
-                ss="User ID WHat?";
-                strcpy(ssc,ss.c_str());
-                if((send(new_socket,ssc,sizeof(ssc),0))!=sizeof(ssc)){
-                    perror("Send Failed@!");
-                }
-                if((read(new_socket,sgc,sizeof(sgc))==0)){
-                    perror("something is wrong");
-                }
 
-                cout<<"User Joined with UserID: "<<sgc<<endl;
-            }
+
 
             //add new socket to list
             for(i=0;i<max_clients;i++){
@@ -345,13 +311,13 @@ int main()
 		valread=read(sd,buffer,1024);
 		buffer[valread]='\0';
                 if((strcmp(buffer,"exit")==0)||(strcmp(buffer,"Exit")==0)){
-                //someone is disconnecting
-		            send(sd,buffer,strlen(buffer),0);
-                    getpeername(sd,(struct sockaddr*)&address,(socklen_t*)&addrlen);
-                    cout<<"Client Disconnected!\n IP: "<<inet_ntoa(address.sin_addr)<<"\tPORT: "<<ntohs(address.sin_port)<<endl;
+                //someone is disconnectiong
+		   send(sd,buffer,strlen(buffer),0);
+                   getpeername(sd,(struct sockaddr*)&address,(socklen_t*)&addrlen);
+                   cout<<"Client Disconnected!\n IP: "<<inet_ntoa(address.sin_addr)<<"\tPORT: "<<ntohs(address.sin_port)<<endl;
 
-                    close(sd);
-                    client_socket[i]=0 ;
+                   close(sd);
+                   client_socket[i]=0 ;
                 }
                 else{
                     //whatever gonna happen or i have to add do it here
