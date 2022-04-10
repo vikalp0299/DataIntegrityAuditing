@@ -203,4 +203,134 @@ int main()
     cout<<endl;
     b.inorder(root);
     cout<<endl;
-}
+
+    //server 
+
+    
+    int opt =true;
+    int master_socket, addrlen, new_socket, client_socket[30], max_clients =30, activity, i ,valread, sd,max_sd;
+    struct sockaddr_in address;
+
+    char buffer[1024];
+
+    fd_set readfs;
+    //initialize client socket
+    string msg = "ECHO Daemon v1.0 \r\n";
+    char *message;
+    message=&msg[0];
+
+    for(i=0;i < max_clients;i++ ){
+        client_socket[i]=0;
+    }
+    //create a master socket
+    if((master_socket=socket(AF_INET,SOCK_STREAM,0))==0){
+        perror("Socket Failed\n");
+        exit(EXIT_FAILURE);
+    }
+    //allow multiple connection
+    if(setsockopt(master_socket,SOL_SOCKET,SO_REUSEADDR,(char*)&opt,sizeof(opt)) < 0 ){
+        perror("Setsockopt");
+        exit(EXIT_FAILURE   );
+    }
+
+    address.sin_family=AF_INET;
+    address.sin_addr.s_addr = inet_addr("10.0.30.4");
+    address.sin_port=htons(PORT);
+
+    //binding the socket
+
+    if(bind(master_socket, (struct sockaddr*)&address,sizeof(address))<0){
+        perror("bind failed\n");
+        exit(EXIT_FAILURE);
+    }
+    cout<<"Listening on port"<<PORT<<endl;
+    if(listen(master_socket,3)<0){
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+    addrlen=sizeof(address);
+    cout<<"Waiting for connection...\n"<<endl;
+
+    while(true){
+        //clear socket set
+        FD_ZERO(&readfs);
+
+        //add master socketto set
+        FD_SET(master_socket,&readfs);
+        max_sd = master_socket;
+
+        //add childern socket to set
+        for(i=0;i<max_clients;i++){
+            //socket descriptor
+            sd = client_socket[i];
+            //add valid socket descriptor to read list
+            if(sd>0){
+                FD_SET(sd,&readfs);
+            }
+            if (max_sd < sd){
+                max_sd =sd;
+            }
+        }
+
+        activity = select(max_sd+1,&readfs,NULL,NULL,NULL);
+        if((activity<0) && (errno!=EINTR)){
+            perror("select error");
+        }
+
+        if(FD_ISSET(master_socket,&readfs)){
+            if ((new_socket=accept(master_socket,(struct sockaddr*)&address,(socklen_t*)&addrlen))<0){
+                perror("Accept failure");
+                exit(EXIT_FAILURE);
+            }
+            cout<<"New Connection\n socket fd: "<<new_socket<<"\n IP: "<<inet_ntoa(address.sin_addr)<<"\n port: "<< ntohs(address.sin_port)<<endl;
+            //send new connection greeting
+            if(send(new_socket,message,strlen(message),0)!= strlen(message)){
+                perror("send failure");
+            }
+	    else
+                cout<<"Welcome Message sent successfully"<<endl;
+            //Add function to generate random UID and insert the UID and IP here:
+
+
+
+
+            //add new socket to list
+            for(i=0;i<max_clients;i++){
+                if(client_socket[i]==0){
+                    client_socket[i]=new_socket;
+                    cout<<"Adding to the list of socket as "<<i<<endl;
+                    break;
+                }
+            }
+        }
+        //else I/O on other sockets
+        for(i=0;i<max_clients;i++){
+            sd=client_socket[i];
+            if(FD_ISSET(sd,&readfs)){
+                //check for closing and read the input
+		valread=read(sd,buffer,1024);
+		buffer[valread]='\0';
+                if((strcmp(buffer,"exit")==0)||(strcmp(buffer,"Exit")==0)){
+                //someone is disconnectiong
+		   send(sd,buffer,strlen(buffer),0);
+                   getpeername(sd,(struct sockaddr*)&address,(socklen_t*)&addrlen);
+                   cout<<"Client Disconnected!\n IP: "<<inet_ntoa(address.sin_addr)<<"\tPORT: "<<ntohs(address.sin_port)<<endl;
+
+                   close(sd);
+                   client_socket[i]=0 ;
+                }
+                else{
+                    //whatever gonna happen or i have to add do it here
+
+                    
+                    send(sd,buffer,strlen(buffer),0);
+                }
+            }
+        }
+    }
+
+
+ 
+    
+    return 0;
+}   
